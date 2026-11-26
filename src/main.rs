@@ -11,9 +11,12 @@ fn shell_loop() {
         let mut input = String::new();
         stdin().read_line(&mut input).expect("Failed to read line");
 
-        let command = input.trim();
+        let mut parts = input.trim().split_whitespace();
+        let command = parts.next().unwrap(); //1st element 
+        let args = parts; //rest of the iterator 
 
         let mut child = Command::new(command)
+            .args(args)
             .spawn()
             .expect("command failed to run");
 
