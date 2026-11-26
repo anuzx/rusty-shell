@@ -3,32 +3,56 @@ use std::{
     process::Command,
 };
 
-fn shell_loop() {
+mod builtins;
+
+fn main() {
     loop {
         print!("~$ ");
         stdout().flush().unwrap();
 
         let mut input = String::new();
-        stdin().read_line(&mut input).expect("Failed to read line");
 
-        let mut parts = input.trim().split_whitespace();
-        let command = parts.next().unwrap(); //1st element 
-        let args = parts; //rest of the iterator 
+        if stdin().read_line(&mut input).unwrap() == 0 {
+            break;
+        }
 
-        let mut child = Command::new(command)
-            .args(args)
-            .spawn()
-            .expect("command failed to run");
+        let parts: Vec<&str> = input.split_whitespace().collect();
 
-        child.wait().unwrap();
+        if parts.is_empty() {
+            continue;
+        }
+
+        let command = parts[0];
+        let args = &parts[1..];
+
+        match command {
+            "exit" => return,
+
+            "cd" => {
+                builtins::shell_cd(args);
+            }
+
+            "cat" => {
+                builtins::shell_cat(args);
+            }
+
+            "echo" => {
+                builtins::shell_echo(args);
+            }
+
+            command => {
+                let mut child = match Command::new(command).args(args).spawn() {
+                    Ok(child) => child,
+                    Err(e) => {
+                        eprintln!("{}: {}", command, e);
+                        continue;
+                    }
+                };
+
+                if let Err(e) = child.wait() {
+                    eprintln!("wait: {}", e);
+                }
+            }
+        }
     }
-}
-
-fn main() {
-    //load config files if any
-
-    //run command loop
-    shell_loop();
-
-    //perform any shutdown or cleanup
 }
